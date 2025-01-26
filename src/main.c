@@ -86,7 +86,6 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
     UNREFERENCED_PARAMETER(currentInstanceHandle);
     UNREFERENCED_PARAMETER(prevInstanceHandle);
     UNREFERENCED_PARAMETER(argsCommandLine);
-    UNREFERENCED_PARAMETER(displayFlag);
 
     // Start up section
 
@@ -104,10 +103,10 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
 
 
     // Initialize a window
-    i32 window_x = 500;
-    i32 window_y = 500;
-    i32 window_w = 500;
-    i32 window_h = 500;
+    i32 window_x = 50;
+    i32 window_y = 90;
+    i32 window_w = 50;
+    i32 window_h = 50;
     char *window_name = "Vulkan Experiment";
     // Create win32 window class.
     WNDCLASSEXA window_class = {0};
@@ -138,19 +137,30 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
         0                          // window_data_pointer: Pointer to CREATESTRUCT var that sends a message to the window.
     );
     ASSERT(window_handle, "ERROR: Failed to create window.");
-    // MONITORINFO monitor_info = {0};
-    // HMONITOR monitor_handle = MonitorFromWindow(window_handle, MONITOR_DEFAULTTOPRIMARY);
-    // BOOL monitor_info_success = GetMonitorInfoA(monitor_handle, &monitor_info);
-    // ASSERT(monitor_info_success, "ERROR: Failed to get monitor info.");
-    // i32 monitor_width  = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
-    // i32 monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
-    // RECT window_border = {0};
-    // AdjustWindowRect(&window_border, WS_OVERLAPPEDWINDOW, FALSE);
+    MONITORINFO monitor_info = {0};
+    monitor_info.cbSize = sizeof(MONITORINFO);
+    HMONITOR monitor_handle = MonitorFromWindow(window_handle, MONITOR_DEFAULTTOPRIMARY);
+    BOOL monitor_info_success = GetMonitorInfoA(monitor_handle, &monitor_info);
+    ASSERT(monitor_info_success, "ERROR: Failed to get monitor info.");
+    i32 monitor_width  = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+    i32 monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+    RECT window_border = {0};
+    AdjustWindowRect(&window_border, WS_OVERLAPPEDWINDOW, FALSE);
     // Calculate our desired window dimensions.
-    // window_w = ( monitor_width / 2 )  + ( window_border.right - window_border.left );
-    // window_h = ( monitor_height / 2 ) + ( window_border.bottom - window_border.top );
-    // window_x = (monitor_width / 2) -  (window_w / 2);
-    // window_y = (monitor_height / 2) - (window_h / 2);
+    window_w = ( monitor_width / 2 )  + ( window_border.right - window_border.left );
+    window_h = ( monitor_height / 2 ) + ( window_border.bottom - window_border.top );
+    window_x = (monitor_width / 2) -  (window_w / 2);
+    window_y = (monitor_height / 2) - (window_h / 2);
+    BOOL window_success = SetWindowPos(
+        window_handle,
+        HWND_TOP,
+        window_x,
+        window_y,
+        window_w,
+        window_h,
+        0
+    );
+    ASSERT(window_success, "Failed to resize and open window.");
     ShowWindow(window_handle, displayFlag);
     
     // Main loop
