@@ -6,6 +6,8 @@
 #include <string.h>
 
 #pragma region types
+#define internal static
+#define global static
 #define bool32 int
 #define uchar unsigned char
 #define u8 uint8_t
