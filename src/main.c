@@ -37,7 +37,7 @@ LRESULT CALLBACK ANSIWindowsProcedure(HWND windowHandle, UINT messageID, WPARAM 
 } 
 
 
-static void win32_message_procedure(HWND windowHandle)
+internal void win32_message_procedure(HWND windowHandle)
 {
     MSG osMessage = {0};
     bool32 message_current = true;
@@ -81,28 +81,8 @@ static void win32_message_procedure(HWND windowHandle)
 }
 
 
-int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle, PSTR argsCommandLine, int displayFlag)
+internal HWND window_init(HINSTANCE currentInstanceHandle, int displayFlag)
 {
-    UNREFERENCED_PARAMETER(currentInstanceHandle);
-    UNREFERENCED_PARAMETER(prevInstanceHandle);
-    UNREFERENCED_PARAMETER(argsCommandLine);
-
-    // Start up section
-
-    // Allocate program memory
-    // Allocate application memory
-    LPVOID app_memory_base = 0;
-    size_t app_memory_size = (size_t) Gigabytes(1);
-    void *app_memory = VirtualAlloc(app_memory_base, app_memory_size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-    ASSERT(app_memory, "ERROR: Unable to allocate application memory.");
-    arena root_arena = {0};
-    arena_init(&root_arena, app_memory, app_memory_size);
-
-    // Set global == 1 b/c we're good to go.
-    RUNNING = true;
-
-
-    // Initialize a window
     i32 window_x = 50;
     i32 window_y = 90;
     i32 window_w = 50;
@@ -137,6 +117,8 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
         0                          // window_data_pointer: Pointer to CREATESTRUCT var that sends a message to the window.
     );
     ASSERT(window_handle, "ERROR: Failed to create window.");
+
+    // Get monitor info and resize the window.
     MONITORINFO monitor_info = {0};
     monitor_info.cbSize = sizeof(MONITORINFO);
     HMONITOR monitor_handle = MonitorFromWindow(window_handle, MONITOR_DEFAULTTOPRIMARY);
@@ -162,6 +144,34 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
     );
     ASSERT(window_success, "Failed to resize and open window.");
     ShowWindow(window_handle, displayFlag);
+
+    return window_handle;
+}
+
+
+int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle, PSTR argsCommandLine, int displayFlag)
+{
+    UNREFERENCED_PARAMETER(currentInstanceHandle);
+    UNREFERENCED_PARAMETER(prevInstanceHandle);
+    UNREFERENCED_PARAMETER(argsCommandLine);
+
+    // Start up section
+
+    // Allocate program memory
+    LPVOID app_memory_base = 0;
+    size_t app_memory_size = (size_t) Gigabytes(1);
+    void *app_memory = VirtualAlloc(app_memory_base, app_memory_size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    ASSERT(app_memory, "ERROR: Unable to allocate application memory.");
+    arena root_arena = {0};
+    arena_init(&root_arena, app_memory, app_memory_size);
+
+    // Set global == 1 b/c we're good to go.
+    RUNNING = true;
+
+
+    // Initialize a window
+    HWND window_handle = window_init(currentInstanceHandle, displayFlag);
+
     
     // Main loop
     while (RUNNING)
@@ -169,6 +179,6 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
         // Message loop
         win32_message_procedure(window_handle);
     }
-     
+
     return 0;
 }
