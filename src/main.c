@@ -149,6 +149,39 @@ internal HWND window_init(HINSTANCE currentInstanceHandle, int displayFlag)
 }
 
 
+internal void render_init()
+{
+    VkInstance instance;
+
+    // Fill in application info.
+    VkApplicationInfo app_info = {0};
+    app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    app_info.pApplicationName = "Data Visualization";
+    app_info.applicationVersion = VK_MAKE_VERSION(1,0,0);
+    app_info.pEngineName = "No Engine";
+    app_info.engineVersion = VK_MAKE_VERSION(1,0,0);
+    app_info.apiVersion = VK_API_VERSION_1_0;
+
+    // Windows interface extensions
+    const char* instanceExtensions[] = {
+        "VK_KHR_surface",
+        "VK_KHR_win32_surface"
+    };
+
+    // Fill in create info
+    VkInstanceCreateInfo create_info = {0};
+    create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    create_info.pApplicationInfo = &app_info;
+    // Specify global validation calls.
+    create_info.enabledExtensionCount = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]);
+    create_info.ppEnabledExtensionNames = instanceExtensions;
+    create_info.enabledLayerCount = 0;
+
+    VkResult result = vkCreateInstance(&create_info, 0, &instance);
+    ASSERT((result == 0), "ERROR: Failed to create vulkan instance.");
+}
+
+
 int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle, PSTR argsCommandLine, int displayFlag)
 {
     UNREFERENCED_PARAMETER(currentInstanceHandle);
@@ -171,6 +204,9 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
 
     // Initialize a window
     HWND window_handle = window_init(currentInstanceHandle, displayFlag);
+
+    // Initialize renderer
+    render_init();
 
     
     // Main loop
