@@ -8,6 +8,79 @@
 
 #include "core.c"
 
+global bool32 RUNNING = 0;
+
+LRESULT CALLBACK ANSIWindowsProcedure(HWND windowHandle, UINT messageID, WPARAM wParam, LPARAM lParam)
+{ 
+    // Characters are coming in Unicode 
+    // lstrcmpW("Q", (LPCWSTR) wParam)
+    LRESULT result = 0;
+    switch (messageID) 
+    { 
+        case WM_CLOSE:
+        {
+            OutputDebugStringA("Closing time!\n");
+            RUNNING = false;
+            PostQuitMessage(0);
+            break;
+        }
+        case WM_SIZE:
+            // Set the size and position of the window. 
+            RECT windowDimensions = {0};
+            GetClientRect(windowHandle, &windowDimensions); 
+            // int left, int top, int right, int bottom
+            // glViewport(windowDimensions.left, windowDimensions.top, windowDimensions.right, windowDimensions.bottom);
+        default: 
+            result = DefWindowProcA(windowHandle, messageID, wParam, lParam); 
+    }
+    return result;
+} 
+
+
+static void win32_message_procedure(HWND windowHandle)
+{
+    MSG osMessage = {0};
+    bool32 message_current = true;
+    while (message_current)
+    {
+        message_current = PeekMessageA(&osMessage, windowHandle, 0, 0, PM_REMOVE);
+        switch (osMessage.message)
+        {
+            case WM_SYSKEYDOWN:
+            case WM_SYSKEYUP:
+            case WM_KEYDOWN:
+            case WM_KEYUP:
+            {
+                u32 VKCode = (u32) osMessage.wParam;
+                bool32 altKeyValue =  (1 << 29);
+                bool32 wasDownValue = (1 << 30);
+                bool32 isDownValue =  (1 << 31);
+                // if both of these int32s have a 1 bit in the same position the result will also have that bit set
+                bool32 wasDownBitCheck = (osMessage.lParam & wasDownValue);
+                bool32 isDownBitCheck  = (osMessage.lParam & isDownValue);
+                bool32 altKeyBitCheck  = (osMessage.lParam & altKeyValue);
+                bool32 WasDown = (wasDownBitCheck != 0);
+                bool32 isDown  = (isDownBitCheck  == 0);
+                if(WasDown != isDown)
+                {
+                    if ( (VKCode == VK_ESCAPE) || ((VKCode == VK_F4) && altKeyBitCheck) )
+                    {
+                        SendMessageA(windowHandle, WM_CLOSE, 0, 0);
+                    }
+                }
+                break;
+            }
+        default:
+        {
+            TranslateMessage(&osMessage); // turn keystrokes into characters
+            DispatchMessageA(&osMessage); // tell OS to call window procedure
+            break;
+        }
+        }
+    }
+}
+
+
 int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle, PSTR argsCommandLine, int displayFlag)
 {
     UNREFERENCED_PARAMETER(currentInstanceHandle);
@@ -25,12 +98,67 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
     ASSERT(app_memory, "ERROR: Unable to allocate application memory.");
     arena root_arena = {0};
     arena_init(&root_arena, app_memory, app_memory_size);
+
+    // Set global == 1 b/c we're good to go.
+    RUNNING = true;
+
+
+    // Initialize a window
+    i32 window_x = 500;
+    i32 window_y = 500;
+    i32 window_w = 500;
+    i32 window_h = 500;
+    char *window_name = "Vulkan Experiment";
+    // Create win32 window class.
+    WNDCLASSEXA window_class = {0};
+    window_class.cbSize = sizeof(window_class);
+    window_class.style = CS_HREDRAW|CS_VREDRAW, // |CS_OWNDC;
+    window_class.lpfnWndProc = ANSIWindowsProcedure;
+    window_class.hInstance = currentInstanceHandle;
+    window_class.hCursor = LoadCursor(0, IDC_ARROW);
+    // window_class.hbrBackground = CreateSolidBrush(RGB(255, 0, 255)); // Magenta background
+    window_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
+    window_class.lpszClassName = "WINDOW_CLASS";
+    ATOM window_id = RegisterClassExA(&window_class);
+    ASSERT(window_id, "ERROR: Failed to register window.");
+    
+    // Create the window we described.
+    HWND window_handle = CreateWindowExA(
+        WS_EX_CLIENTEDGE,            // style_extended: has list of possible values.    
+        window_class.lpszClassName,  // class_name: null-terminated string.         
+        window_name,                  // name: string window name to display in title bar.              
+        WS_OVERLAPPEDWINDOW,        // style_basic: has list of possible values.        
+        window_x,                          // position_x: Horizontal window position      
+        window_y,                          // position_y: Vertical window position         
+        window_w,                          // width: Window width in screen coordinates
+        window_h,                          // height: Window height in screen coordinates
+        0,                          // window_parent: Handle to the parent window.
+        0,                          // window_menu: Optional child window ID.
+        currentInstanceHandle,      // window_handle: handle to this window's module.
+        0                          // window_data_pointer: Pointer to CREATESTRUCT var that sends a message to the window.
+    );
+    ASSERT(window_handle, "ERROR: Failed to create window.");
+    // MONITORINFO monitor_info = {0};
+    // HMONITOR monitor_handle = MonitorFromWindow(window_handle, MONITOR_DEFAULTTOPRIMARY);
+    // BOOL monitor_info_success = GetMonitorInfoA(monitor_handle, &monitor_info);
+    // ASSERT(monitor_info_success, "ERROR: Failed to get monitor info.");
+    // i32 monitor_width  = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+    // i32 monitor_height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+    // RECT window_border = {0};
+    // AdjustWindowRect(&window_border, WS_OVERLAPPEDWINDOW, FALSE);
+    // Calculate our desired window dimensions.
+    // window_w = ( monitor_width / 2 )  + ( window_border.right - window_border.left );
+    // window_h = ( monitor_height / 2 ) + ( window_border.bottom - window_border.top );
+    // window_x = (monitor_width / 2) -  (window_w / 2);
+    // window_y = (monitor_height / 2) - (window_h / 2);
+    ShowWindow(window_handle, displayFlag);
+    
+    // Main loop
+    while (RUNNING)
+    {
+        // Message loop
+        win32_message_procedure(window_handle);
+    }
      
-    printf("Hello, world\n");
-    #if defined(_WIN64)
-        printf("Compiled for x64.\n");
-    #else
-        printf("Not compiled for x64.\n");
-    #endif
     return 0;
 }
