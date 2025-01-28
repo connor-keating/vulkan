@@ -65,7 +65,35 @@
 #endif
 #pragma endregion
 
+#pragma region structs
 
+typedef struct string string;
+struct string
+{
+    u32 length;
+    char *data;
+};
+
+#pragma endregion
+
+
+string string_init(char *array)
+{
+    string output = {0};
+    ASSERT(array, "ERROR: Input a valid string.");
+    u32 counter = 0;
+    u32 limit = 500;
+    while (counter < limit)
+    {
+        char index = array[counter];
+        if (index == '\0') break;
+        counter++;
+    }
+    output.length = counter;
+    output.data = array;
+
+    return output;
+}
 
 
 /// @brief Check if input x is a power of 2 (1, 2, 4, 8, 16, ...).
