@@ -77,19 +77,27 @@ struct string
 #pragma endregion
 
 
-string string_init(char *array)
+u32 string_length(char* array)
 {
-    string output = {0};
     ASSERT(array, "ERROR: Input a valid string.");
     u32 counter = 0;
     u32 limit = 500;
     while (counter < limit)
     {
         char index = array[counter];
-        if (index == '\0') break;
         counter++;
+        // Putting this last means the length includes the null terminator.
+        if (index == '\0') break;
     }
-    output.length = counter;
+    return counter;
+}
+
+
+string string_init(char *array)
+{
+    string output = {0};
+    ASSERT(array, "ERROR: Input a valid string.");
+    output.length = string_length(array);
     output.data = array;
 
     return output;
@@ -129,7 +137,8 @@ void arena_init(arena *new, void *buffer, size_t size)
 
 uintptr_t pointer_align_forward(uintptr_t pointer, size_t alignment)
 {
-    ASSERT(is_power_of_two(alignment), "Arena pointer is not a power of 2.");
+    bool32 aligned = is_power_of_two(alignment);
+    ASSERT(aligned, "Arena pointer is not a power of 2.");
     uintptr_t  p, a, modulo;
     p = pointer;
     a = (uintptr_t) alignment;
@@ -163,11 +172,23 @@ void *arena_alloc_align(arena *arena, size_t size, size_t align)
 }
 
 
-#define arena_alloc_array(arena, count, type) (type *) arena_alloc_align(arena, count*sizeof(type), sizeof(type))
+#define arena_alloc_array(arena, count, type) (type *) arena_alloc_align(arena, count*sizeof(type), _Alignof(type))
+
+
 void *arena_alloc(arena *arena, size_t size)
 {
     void *allocation = arena_alloc_align(arena, size, DEFAULT_ALIGNMENT);
     return allocation;
+}
+
+
+char * arena_alloc_string(arena *arena, char *input)
+{
+    u32 length = string_length(input);
+    size_t char_size = sizeof(char);
+    char * output = arena_alloc_align(arena, length*char_size, char_size);
+    memcpy(output, input, length);
+    return output;
 }
 
 
