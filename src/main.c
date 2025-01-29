@@ -9,6 +9,13 @@
 #include "core.c"
 
 global bool32 RUNNING = 0;
+#if DEBUG_BUILD
+    // Enable validation layers during development.
+    global const bool VALIDATION_ENABLED = true;
+#else
+    // Disable validation layers during development.
+    global const bool VALIDATION_ENABLED = false;
+#endif
 
 LRESULT CALLBACK ANSIWindowsProcedure(HWND windowHandle, UINT messageID, WPARAM wParam, LPARAM lParam)
 { 
@@ -149,10 +156,43 @@ internal HWND window_init(HINSTANCE currentInstanceHandle, int displayFlag)
 }
 
 
-internal void render_init()
+internal void render_init(arena *memory)
 {
-    VkInstance instance;
+    if (VALIDATION_ENABLED)
+    {
+        // Set up validation layers for debugging
+        uint32_t validation_layers_count = 0;
+        vkEnumerateInstanceLayerProperties(&validation_layers_count, 0);
+        char *layer1 = arena_alloc_string(memory, "VK_LAYER_KHRONOS_validation");
+        // Create pointer array to hold all strings we need.
+        size_t char_size = sizeof(char*);
+        size_t requested_layer_count = 1; // TODO: Can I do this dynamically?
+        char** validation_layers = arena_alloc_align(memory, requested_layer_count*char_size, char_size);
+        validation_layers[0] = layer1;
+        // Get the data for the layers
+        // TODO: Do the struct arrays need padding?
+        VkLayerProperties *validation_layers_data = arena_alloc_array(memory, validation_layers_count, VkLayerProperties); 
+        vkEnumerateInstanceLayerProperties(&validation_layers_count, validation_layers_data);
+        // Verify we have the layers we requested.
+        for (u32 i=0; i < requested_layer_count; i++)
+        {
+            bool32 found = false;
+            char *layer = validation_layers[i];
+            for (u32 j=0; j < validation_layers_count; j++)
+            {
+                char *layer_selected = validation_layers_data[j].layerName;
+                found = strcmp(layer, layer_selected);
+                if (found == 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            ASSERT(found, "ERROR: Did not find requested Vulkan validation layer.");
+        }
+    }
 
+    VkInstance instance;
     // Fill in application info.
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -163,7 +203,7 @@ internal void render_init()
     app_info.apiVersion = VK_API_VERSION_1_0;
 
     // Windows interface extensions
-    const char* instanceExtensions[] = {
+    const char* instance_extensions[] = {
         "VK_KHR_surface",
         "VK_KHR_win32_surface"
     };
@@ -173,9 +213,10 @@ internal void render_init()
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
     // Specify global validation calls.
-    create_info.enabledExtensionCount = sizeof(instanceExtensions) / sizeof(instanceExtensions[0]);
-    create_info.ppEnabledExtensionNames = instanceExtensions;
+    create_info.enabledExtensionCount = sizeof(instance_extensions) / sizeof(instance_extensions[0]);
+    create_info.ppEnabledExtensionNames = instance_extensions;
     create_info.enabledLayerCount = 0;
+
 
     VkResult result = vkCreateInstance(&create_info, 0, &instance);
     ASSERT((result == 0), "ERROR: Failed to create vulkan instance.");
@@ -184,7 +225,6 @@ internal void render_init()
 
 int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle, PSTR argsCommandLine, int displayFlag)
 {
-    UNREFERENCED_PARAMETER(currentInstanceHandle);
     UNREFERENCED_PARAMETER(prevInstanceHandle);
     UNREFERENCED_PARAMETER(argsCommandLine);
 
@@ -206,7 +246,7 @@ int WINAPI WinMain(HINSTANCE currentInstanceHandle, HINSTANCE prevInstanceHandle
     HWND window_handle = window_init(currentInstanceHandle, displayFlag);
 
     // Initialize renderer
-    render_init();
+    render_init(&root_arena);
 
     
     // Main loop
