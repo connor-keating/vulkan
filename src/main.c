@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 		4) Determine the list of graphics hardware devices in this computer.
 		   In this example we just select the first device on the list.
 	*/
-	int n_gpus = 0;
+	u32 n_gpus = 0;
 	res = vkEnumeratePhysicalDevices(instance, &n_gpus, NULL);
 	if (n_gpus <= 0) {
 		fprintf(stderr, "No graphics hardware was found (physical device count = %d) (%d)\n", n_gpus, res);
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 		5) Determine which queue family to use.
 		   In this case, we just look for the first one that can do graphics.
 	*/
-	int n_queues = 0;
+	u32 n_queues = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &n_queues, NULL);
 	if (n_queues <= 0) {
 		fprintf(stderr, "No queue families were found\n");
@@ -265,9 +265,11 @@ int main(int argc, char **argv)
 	VkQueueFamilyProperties *qfp = malloc(n_queues * sizeof(VkQueueFamilyProperties));
 	vkGetPhysicalDeviceQueueFamilyProperties(gpu, &n_queues, qfp);
 
-	int queue_index = -1;
-	for (int i = 0; i < n_queues; i++) {
-		if (qfp[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+	// This needs to be u32 for func below (vkGetPhysicalDeviceWin32PresentationSupportKHR)
+	i32 queue_index = -1;
+	for (i32 i = 0; i < (i32)n_queues; i++) {
+		if (qfp[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+		{
 			queue_index = i;
 			break;
 		}
@@ -283,10 +285,12 @@ int main(int argc, char **argv)
 		6) Check that the chosen queue family supports presentation.
 	*/
 	// TODO: Fix this for windows
-	// if (!glfwGetPhysicalDevicePresentationSupport(instance, gpu, queue_index)) {
-		// fprintf(stderr, "The selected queue family does not support present mode\n");
-		// return 6;
-	// }
+	VkBool32 present_support = vkGetPhysicalDeviceWin32PresentationSupportKHR(gpu, (u32)queue_index);
+	if (!present_support) 
+	{
+		ASSERT(0, "The selected queue family does not support present mode\n");
+		return 6;
+	}
 
 	/*
 		7) Get all Vulkan *device* extensions (as opposed to instance extensions)
@@ -294,7 +298,8 @@ int main(int argc, char **argv)
 	unsigned int n_dev_exts = 0;
 	res = vkEnumerateDeviceExtensionProperties(gpu, NULL, &n_dev_exts, NULL);
 	if (n_dev_exts <= 0 || res != VK_SUCCESS) {
-		fprintf(stderr, "Could not find any Vulkan device extensions (found %d, error %d)\n", n_dev_exts, res);
+		// look at n_dev_exts, res
+		ASSERT(0, "Could not find any Vulkan device extensions (found %d, error %d)\n");
 		return 7;
 	}
 
@@ -306,8 +311,10 @@ int main(int argc, char **argv)
 	}
 
 	const char **dev_exts = calloc(n_dev_exts, sizeof(void*));
-	for (int i = 0; i < n_dev_exts; i++)
+	for (u32 i = 0; i < n_dev_exts; i++)
+	{
 		dev_exts[i] = &dev_ext_props[i].extensionName[0];
+	}
 
 	/*
 		8) Create a virtual device for Vulkan.
@@ -386,7 +393,7 @@ int main(int argc, char **argv)
 	/*
 		11) Determine the color format.
 	*/
-	int n_color_formats = 0;
+	u32 n_color_formats = 0;
 	res = GetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &n_color_formats, NULL);
 	if (n_color_formats <= 0 || res != VK_SUCCESS) {
 		fprintf(stderr, "Could not find any color formats for the window surface\n");
@@ -401,7 +408,7 @@ int main(int argc, char **argv)
 	}
 
 	VkSurfaceFormatKHR color_fmt = {0};
-	for (int i = 0; i < n_color_formats; i++) {
+	for (u32 i = 0; i < n_color_formats; i++) {
 		if (colors[i].format == VK_FORMAT_B8G8R8A8_UNORM) {
 			color_fmt = colors[i];
 			break;
@@ -455,9 +462,11 @@ int main(int argc, char **argv)
 		    This lets us maintain a rotating cast of framebuffers.
 		    In this example, we set it up for double-buffering.
 	*/
-	int n_swap_images = surf_caps.minImageCount + 1;
+	u32 n_swap_images = surf_caps.minImageCount + 1;
 	if (surf_caps.maxImageCount > 0 && n_swap_images > surf_caps.maxImageCount)
+	{
 		n_swap_images = surf_caps.maxImageCount;
+	}
 
 	VkImageUsageFlags img_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 		(surf_caps.supportedUsageFlags & (VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
@@ -492,7 +501,7 @@ int main(int argc, char **argv)
 		15) Get swapchain images.
 		    These are the endpoints for our framebuffers.
 	*/
-	int n_images = 0;
+	u32 n_images = 0;
 	res = GetSwapchainImagesKHR(device, swapchain, &n_images, NULL);
 	if (n_images <= 0 || res != VK_SUCCESS) {
 		fprintf(stderr, "Could not find any swapchain images\n");
@@ -528,7 +537,7 @@ int main(int argc, char **argv)
 	iv_info.flags = 0;
 
 	VkImageView *img_views = calloc(n_images, sizeof(VkImageView));
-	for (int i = 0; i < n_images; i++) {
+	for (u32 i = 0; i < n_images; i++) {
 		iv_info.image = images[i];
 		res = vkCreateImageView(device, &iv_info, NULL, &img_views[i]);
 		if (res != VK_SUCCESS) {
@@ -630,8 +639,9 @@ int main(int argc, char **argv)
 	VkMemoryRequirements mem_reqs;
 	vkGetImageMemoryRequirements(device, depth_img, &mem_reqs);
 
-	int mem_type_idx = -1;
-	for (int i = 0; i < gpu_mem.memoryTypeCount; i++) {
+	// TODO: This needs to be u32 for struct below alloc_info.memoryTypeIndex
+	i32 mem_type_idx = -1;
+	for (i32 i = 0; i < (i32)gpu_mem.memoryTypeCount; i++) {
 		if ((mem_reqs.memoryTypeBits & (1 << i)) &&
 			(gpu_mem.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
 		{
@@ -648,7 +658,7 @@ int main(int argc, char **argv)
 	VkMemoryAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	alloc_info.allocationSize = mem_reqs.size;
-	alloc_info.memoryTypeIndex = mem_type_idx;
+	alloc_info.memoryTypeIndex = (u32) mem_type_idx;
 
 	VkDeviceMemory depth_mem;
 	res = vkAllocateMemory(device, &alloc_info, NULL, &depth_mem);
@@ -788,7 +798,7 @@ int main(int argc, char **argv)
 	fb_info.layers = 1;
 
 	VkFramebuffer *fbuffers = calloc(n_images, sizeof(VkFramebuffer));
-	for (int i = 0; i < n_images; i++) {
+	for (u32 i = 0; i < n_images; i++) {
 		fb_views[0] = img_views[i];
 		res = vkCreateFramebuffer(device, &fb_info, NULL, &fbuffers[i]);
 		if (res != VK_SUCCESS) {
@@ -819,7 +829,7 @@ int main(int argc, char **argv)
 	fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	VkFence *fences = calloc(n_images, sizeof(VkFence));
-	for (int i = 0; i < n_images; i++) {
+	for (u32 i = 0; i < n_images; i++) {
 		res = vkCreateFence(device, &fence_info, NULL, &fences[i]);
 		if (res != VK_SUCCESS) {
 			fprintf(stderr, "vkCreateFence() failed (%d)\n", res);
@@ -841,10 +851,10 @@ int main(int argc, char **argv)
 	int indices[] = {0, 1, 2};
 	float mvp[] = {
 		// Projection Matrix (60deg FOV, 3:2 aspect ratio, [1.0, 256.0] clipping plane range)
-		1.155,  0.000,  0.000,  0.000,
-		0.000,  1.732,  0.000,  0.000,
-		0.000,  0.000, -1.008, -1.000,
-		0.000,  0.000, -2.008,  0.000,
+		1.155f,  0.000f,  0.000f,  0.000f,
+		0.000f,  1.732f,  0.000f,  0.000f,
+		0.000f,  0.000f, -1.008f, -1.000f,
+		0.000f,  0.000f, -2.008f,  0.000f,
 		// Model Matrix (identity)
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -881,12 +891,11 @@ int main(int argc, char **argv)
 			return 28;
 		}
 
-		VkMemoryRequirements mem_reqs;
 		vkGetBufferMemoryRequirements(device, data[i].buffer, &mem_reqs);
 
 		unsigned int flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		int type_idx = -1;
-		for (int j = 0; j < gpu_mem.memoryTypeCount; j++) {
+		for (u32 j = 0; j < gpu_mem.memoryTypeCount; j++) {
 			if ((mem_reqs.memoryTypeBits & (1 << j)) &&
 				(gpu_mem.memoryTypes[j].propertyFlags & flags) == flags)
 			{
@@ -1197,7 +1206,7 @@ int main(int argc, char **argv)
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
-	for (int i = 0; i < n_images; i++) {
+	for (u32 i = 0; i < n_images; i++) {
 		res = vkBeginCommandBuffer(cmd_buffers[i], &cbuf_info);
 		if (res != VK_SUCCESS) {
 			fprintf(stderr, "vkBeginCommandBuffer() %d failed (%d)\n", i, res);
@@ -1257,14 +1266,13 @@ int main(int argc, char **argv)
 	*/
 	// TODO: do your main loop
 	RUNNING = true;
-	unsigned long long max64 = -1;
-	// while (!glfwWindowShouldClose(window)) 
+	u64 max64 = UINT64_MAX;
 	while (RUNNING) 
 	{
         // Message loop
         win32_message_procedure(window_handle);
 
-		int idx;
+		u32 idx;
 		res = AcquireNextImageKHR(device, swapchain, max64, sema_present, NULL, &idx);
 		if (res != VK_SUCCESS) {
 			fprintf(stderr, "vkAcquireNextImageKHR() failed (%d)\n", res);
@@ -1313,11 +1321,11 @@ int main(int argc, char **argv)
 	vkDestroySemaphore(device, sema_present, NULL);
 	vkDestroySemaphore(device, sema_render, NULL);
 
-	for (int i = 0; i < n_images; i++)
+	for (u32 i = 0; i < n_images; i++)
 		vkDestroyFence(device, fences[i], NULL);
 	free(fences);
 
-	for (int i = 0; i < n_images; i++)
+	for (u32 i = 0; i < n_images; i++)
 		vkDestroyFramebuffer(device, fbuffers[i], NULL);
 	free(fbuffers);
 
@@ -1332,7 +1340,7 @@ int main(int argc, char **argv)
 	vkDestroyPipeline(device, pipeline, NULL);
 	vkDestroyRenderPass(device, renderpass, NULL);
 
-	for (int i = 0; i < n_images; i++)
+	for (u32 i = 0; i < n_images; i++)
 		vkDestroyImageView(device, img_views[i], NULL);
 	free(img_views);
 
