@@ -3,7 +3,7 @@
 set TurnOffWarnings= -wd4189 -wd4201
 set CommonCompilerFlags=-std:c11 -Zi -nologo -W4 %TurnOffWarnings% 
 @REM Add build macros
-set CommonCompilerFlags= -D DEBUG_BUILD=1 %CommonCompilerFlags%
+set CommonCompilerFlags= -D DEBUG_BUILD=1  -D VK_USE_PLATFORM_WIN32_KHR %CommonCompilerFlags%
 set CommonLinkerFlags= -incremental:no -opt:ref -MACHINE:X64 user32.lib gdi32.lib winmm.lib 
 
 
