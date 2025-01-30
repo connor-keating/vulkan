@@ -1183,7 +1183,7 @@ int main(int argc, char **argv)
 
 	VkClearValue clear_values[] = {
 		{
-			.color = { { 0.0f, 0.0f, 0.2f, 1.0f } }
+			.color = { { 0.1f, 0.16f, 0.13f, 1.0f } }
 		}, {
 			.depthStencil = { 1.0f, 0 }
 		}
