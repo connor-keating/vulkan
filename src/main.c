@@ -192,9 +192,9 @@ int main(int argc, char **argv)
     };
 	uint32_t extensionCount = 0;
 	VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-	if (result != VK_SUCCESS || extensionCount == 0) {
-        fprintf(stderr, "Could not find any Vulkan instance extensions\n");
-        return 2;
+	if (result != VK_SUCCESS || extensionCount == 0)
+	{
+		ASSERT(false, "Could not find any Vulkan instance extensions");
     }
 	u32 n_inst_exts = sizeof(instance_extensions) / sizeof(instance_extensions[0]);
     
