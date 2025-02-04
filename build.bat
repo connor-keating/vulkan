@@ -14,9 +14,9 @@ del *.pdb > NUL 2> NUL
 
 set files=..\src\main.c
 :: Define included directories
-set includes=-I"..\include" -I"C:\VulkanSDK\1.4.304.0\Include"
+set includes=-I"..\include" -I%VULKAN_SDK%\Include
 :: Define library paths
-set libs=-LIBPATH:"C:\VulkanSDK\1.4.304.0\Lib"
+set libs=-LIBPATH:%VULKAN_SDK%\Lib
 set libs_platform=vulkan-1.lib
 
 set year=%date:~-4,4%
