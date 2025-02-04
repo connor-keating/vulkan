@@ -183,12 +183,6 @@ int main(int argc, char **argv)
 	/*
 		2) Retrieves the names of the Vulkan *instance* extensions that are necessary.
 		   If NULL is returned, then Vulkan is not usable (likely not installed).
-		unsigned int n_inst_exts = 0;
-		const char **req_inst_exts = glfwGetRequiredInstanceExtensions(&n_inst_exts);
-		if (!req_inst_exts) {
-			fprintf(stderr, "Could not find any Vulkan extensions\n");
-			return 2;
-		}
 	*/
 	
 	// Required extensions for Vulkan on Windows
