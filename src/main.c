@@ -107,6 +107,7 @@ internal HWND window_init(HINSTANCE currentInstanceHandle, int displayFlags)
     i32 window_w = 50;
     i32 window_h = 50;
     char *window_name = "Vulkan Experiment";
+	HBRUSH background_hbrush = CreateSolidBrush(RGB(26, 41, 33));
     // Create win32 window class.
     WNDCLASSEXA window_class = {0};
     window_class.cbSize = sizeof(window_class);
@@ -115,7 +116,8 @@ internal HWND window_init(HINSTANCE currentInstanceHandle, int displayFlags)
     window_class.hInstance = currentInstanceHandle;
     window_class.hCursor = LoadCursor(0, IDC_ARROW);
     // window_class.hbrBackground = CreateSolidBrush(RGB(255, 0, 255)); // Magenta background
-    window_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
+	// window_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
+    window_class.hbrBackground = background_hbrush;
     window_class.lpszClassName = "WINDOW_CLASS";
     ATOM window_id = RegisterClassExA(&window_class);
     ASSERT(window_id, "ERROR: Failed to register window.");
